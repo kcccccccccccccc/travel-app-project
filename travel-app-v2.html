@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>日本旅記 Japan Trip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'jp-bg': '#F9F7F2',       // 和紙白
+                        'jp-text': '#433D3C',     // 墨黑
+                        'jp-primary': '#7E8D75',  // 抹茶綠
+                        'jp-accent': '#E8A798',   // 乾枯玫瑰/櫻色
+                        'jp-card': '#FFFFFF',
+                        'jp-gray': '#D3D3D3',
+                    },
+                    fontFamily: {
+                        sans: ['"Hiragino Kaku Gothic ProN"', '"Noto Sans JP"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #e5e5e5; }
+        /* 隱藏 Scrollbar 但保持功能 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="flex justify-center items-center min-h-screen font-sans text-jp-text">
+
+    <div id="app" class="w-full max-w-md h-[100dvh] bg-jp-bg shadow-2xl overflow-hidden flex flex-col relative sm:rounded-3xl sm:h-[90vh]">
+        
+        <header class="px-6 pt-12 pb-4 bg-jp-bg sticky top-0 z-10">
+            <h1 class="text-2xl font-bold tracking-widest text-jp-primary">
+                <i class="fa-solid fa-torii-gate mr-2"></i>旅の記録
+            </h1>
+            <p class="text-xs text-gray-500 mt-1">2025 東京之旅</p>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-4 pb-24 no-scrollbar space-y-4">
+            
+            <div v-if="currentTab === 'schedule'" class="space-y-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-lg font-bold">行程表</h2>
+                    <span class="text-xs bg-jp-primary text-white px-2 py-1 rounded-full">Day 1</span>
+                </div>
+
+                <div v-for="(item, index) in schedule" :key="index" class="bg-jp-card p-4 rounded-xl shadow-sm border-l-4 border-jp-primary flex gap-3">
+                    <div class="flex flex-col items-center min-w-[50px]">
+                        <span class="text-lg font-bold">{{ item.time }}</span>
+                        <div class="mt-2 text-jp-accent flex flex-col items-center">
+                            <i :class="item.weatherIcon"></i>
+                            <span class="text-[10px]">{{ item.weather }}</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 pl-3 border-l border-dashed border-gray-200">
+                        <h3 class="font-bold text-lg">{{ item.location }}</h3>
+                        <p class="text-sm text-gray-500 mb-2">{{ item.note }}</p>
+                        <button @click="openMap(item.location)" class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition">
+                            <i class="fa-solid fa-location-arrow mr-1 text-jp-primary"></i> 導航
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="currentTab === 'map'" class="h-full flex flex-col">
+                <h2 class="text-lg font-bold mb-4">地圖導航</h2>
+                <div class="bg-jp-card p-6 rounded-xl shadow-sm text-center flex-1 flex flex-col justify-center items-center gap-4">
+                    <i class="fa-solid fa-map-location-dot text-6xl text-jp-primary/50"></i>
+                    <p class="text-gray-500 text-sm">點擊下方按鈕開啟 Google Maps 導航</p>
+                    <div class="w-full space-y-3 mt-4">
+                        <button v-for="loc in savedLocations" @click="openMap(loc)" class="w-full py-3 bg-white border border-jp-primary text-jp-primary rounded-xl font-bold hover:bg-jp-primary hover:text-white transition shadow-sm">
+                            去 {{ loc }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="currentTab === 'money'" class="space-y-4">
+                <div class="bg-jp-primary text-white p-6 rounded-2xl shadow-md mb-6 relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 text-9xl opacity-10 rotate-12">¥</div>
+                    <p class="text-sm opacity-80">總支出 (Total)</p>
+                    <h2 class="text-3xl font-bold mt-1">¥ {{ totalExpense.toLocaleString() }}</h2>
+                </div>
+
+                <div class="bg-jp-card p-5 rounded-xl shadow-sm space-y-3">
+                    <h3 class="font-bold text-sm text-gray-600 mb-2">新增支出</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <input v-model="newExpense.item" placeholder="項目 (例如: 拉麵)" class="col-span-2 bg-gray-50 p-3 rounded-lg text-sm outline-none border border-transparent focus:border-jp-primary">
+                        <input v-model.number="newExpense.amount" type="number" placeholder="金額 (¥)" class="bg-gray-50 p-3 rounded-lg text-sm outline-none border border-transparent focus:border-jp-primary">
+                        
+                        <div class="relative">
+                            <select v-model="newExpense.method" class="w-full bg-gray-50 p-3 rounded-lg text-sm appearance-none outline-none border border-transparent focus:border-jp-primary text-gray-600">
+                                <option value="cash">現金 Cash</option>
+                                <option value="card">信用卡 Card</option>
+                                <option value="suica">Suica/IC</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down absolute right-3 top-3.5 text-xs text-gray-400 pointer-events-none"></i>
+                        </div>
+                    </div>
+                    <button @click="addExpense" class="w-full bg-jp-accent text-white py-3 rounded-lg font-bold shadow-sm active:scale-95 transition">
+                        記帳
+                    </button>
+                </div>
+
+                <div class="space-y-2 mt-4">
+                    <div v-for="(exp, i) in expenses" :key="i" class="flex justify-between items-center bg-white p-3 rounded-lg border-b border-gray-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs" 
+                                :class="exp.method === 'cash' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'">
+                                <i :class="exp.method === 'cash' ? 'fa-solid fa-coins' : 'fa-regular fa-credit-card'"></i>
+                            </div>
+                            <span class="font-medium">{{ exp.item }}</span>
+                        </div>
+                        <span class="font-bold text-gray-700">- ¥{{ exp.amount }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="currentTab === 'shop'" class="space-y-4">
+                <h2 class="text-lg font-bold">購物清單</h2>
+                
+                <div class="flex gap-2">
+                    <input v-model="newItem" @keyup.enter="addItem" placeholder="想買什麼？(例如: 抹茶粉)" class="flex-1 bg-white p-3 rounded-xl shadow-sm outline-none">
+                    <button @click="addItem" class="bg-jp-primary text-white w-12 rounded-xl shadow-sm"><i class="fa-solid fa-plus"></i></button>
+                </div>
+
+                <div class="space-y-2">
+                    <div v-for="(item, index) in shoppingList" :key="index" 
+                         class="flex items-center bg-jp-card p-4 rounded-xl shadow-sm transition-all"
+                         :class="{'opacity-50 grayscale': item.checked}">
+                        <label class="flex items-center w-full cursor-pointer">
+                            <input type="checkbox" v-model="item.checked" class="w-5 h-5 text-jp-primary rounded border-gray-300 focus:ring-jp-primary mr-3">
+                            <span :class="{'line-through text-gray-400': item.checked}" class="flex-1 font-medium">{{ item.name }}</span>
+                        </label>
+                        <button @click="removeItem(index)" class="text-gray-300 hover:text-red-400 px-2">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <nav class="absolute bottom-0 w-full bg-white border-t border-gray-100 py-2 px-6 pb-6 flex justify-between items-center z-20">
+            <button @click="currentTab = 'schedule'" :class="currentTab === 'schedule' ? 'text-jp-primary' : 'text-gray-300'" class="flex flex-col items-center gap-1 w-16 transition">
+                <i class="fa-solid fa-calendar-day text-xl"></i>
+                <span class="text-[10px]">行程</span>
+            </button>
+            <button @click="currentTab = 'map'" :class="currentTab === 'map' ? 'text-jp-primary' : 'text-gray-300'" class="flex flex-col items-center gap-1 w-16 transition">
+                <i class="fa-solid fa-map text-xl"></i>
+                <span class="text-[10px]">地圖</span>
+            </button>
+            
+            <div class="relative -top-5">
+                <button @click="currentTab = 'money'" class="bg-jp-primary text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center transform hover:scale-105 transition border-4 border-jp-bg">
+                    <i class="fa-solid fa-pen text-xl"></i>
+                </button>
+            </div>
+
+            <button @click="currentTab = 'shop'" :class="currentTab === 'shop' ? 'text-jp-primary' : 'text-gray-300'" class="flex flex-col items-center gap-1 w-16 transition">
+                <i class="fa-solid fa-bag-shopping text-xl"></i>
+                <span class="text-[10px]">購物</span>
+            </button>
+             <button class="flex flex-col items-center gap-1 w-16 text-gray-300 cursor-not-allowed">
+                <i class="fa-solid fa-user text-xl"></i>
+                <span class="text-[10px]">我的</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <script>
+        const { createApp, ref, computed } = Vue;
+
+        createApp({
+            setup() {
+                const currentTab = ref('schedule');
+                
+                // 1. 行程資料 (含天氣)
+                const schedule = ref([
+                    { time: '09:00', location: '淺草寺', note: '雷門拍照，求御守', weather: '晴れ', weatherIcon: 'fa-solid fa-sun' },
+                    { time: '11:30', location: '晴空塔', note: '敘敘苑午餐預約', weather: '曇り', weatherIcon: 'fa-solid fa-cloud' },
+                    { time: '15:00', location: '秋葉原', note: '購買電器、模型', weather: '雨', weatherIcon: 'fa-solid fa-umbrella' },
+                    { time: '19:00', location: '澀谷SKY', note: '看夜景', weather: '晴れ', weatherIcon: 'fa-solid fa-moon' },
+                ]);
+
+                // 2. 地圖常用點
+                const savedLocations = ref(['東京鐵塔', '淺草寺', '新宿車站', '成田機場']);
+
+                // 3. 記帳資料
+                const expenses = ref([
+                    { item: '西瓜卡儲值', amount: 3000, method: 'cash' },
+                    { item: '便利商店', amount: 850, method: 'suica' },
+                ]);
+                const newExpense = ref({ item: '', amount: '', method: 'cash' });
+
+                const totalExpense = computed(() => {
+                    return expenses.value.reduce((sum, curr) => sum + curr.amount, 0);
+                });
+
+                const addExpense = () => {
+                    if(!newExpense.value.item || !newExpense.value.amount) return;
+                    expenses.value.unshift({ ...newExpense.value });
+                    newExpense.value.item = '';
+                    newExpense.value.amount = '';
+                };
+
+                // 4. 購物清單
+                const shoppingList = ref([
+                    { name: '藥妝 (EVE止痛藥)', checked: false },
+                    { name: 'Uniqlo 發熱衣', checked: true },
+                ]);
+                const newItem = ref('');
+
+                const addItem = () => {
+                    if(!newItem.value) return;
+                    shoppingList.value.push({ name: newItem.value, checked: false });
+                    newItem.value = '';
+                };
+
+                const removeItem = (index) => {
+                    shoppingList.value.splice(index, 1);
+                };
+
+                // Google Maps 導航功能
+                const openMap = (location) => {
+                    // 使用 Google Maps Web URL Scheme
+                    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+                    window.open(url, '_blank');
+                };
+
+                return {
+                    currentTab,
+                    schedule,
+                    savedLocations,
+                    expenses,
+                    newExpense,
+                    totalExpense,
+                    addExpense,
+                    shoppingList,
+                    newItem,
+                    addItem,
+                    removeItem,
+                    openMap
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
