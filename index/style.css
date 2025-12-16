@@ -1,0 +1,16 @@
+/* style.css */
+body { background-color: #e5e5e5; }
+
+/* 隱藏 Scrollbar 但保持功能 */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* 日期選擇器的樣式 */
+.day-pill {
+    flex-shrink: 0;
+    cursor: pointer;
+}
+.day-pill.active {
+    box-shadow: 0 4px 10px rgba(126, 141, 117, 0.4);
+    transform: scale(1.05);
+}
