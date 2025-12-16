@@ -2,388 +2,498 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Japan Travel App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>日本旅記 Japan Trip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'jp-bg': '#F9F7F2',       // 和紙白
+                        'jp-text': '#433D3C',     // 墨黑
+                        'jp-primary': '#7E8D75',  // 抹茶綠
+                        'jp-accent': '#E8A798',   // 乾枯玫瑰/櫻色
+                        'jp-card': '#FFFFFF',
+                        'jp-gray': '#D3D3D3',
+                    },
+                    fontFamily: {
+                        sans: ['"Hiragino Kaku Gothic ProN"', '"Noto Sans JP"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        :root {
-            --primary-bg: #EAF4FC;
-            --card-white: #FFFFFF;
-            --text-dark: #333;
-            --blue-accent: #4A90E2;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f0f0f0;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            height: 100vh;
-        }
-
-        .mobile-container {
-            width: 100%;
-            max-width: 400px;
-            background-color: var(--primary-bg);
-            height: 100%;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        }
-
-        .header { padding: 20px; }
-        .header h1 { font-size: 20px; margin: 0; color: var(--text-dark); display: flex; align-items: center; }
-        .rate-tag { font-size: 12px; color: #666; margin-left: auto; }
-
-        .content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0 20px 100px 20px;
-            display: none;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        .content.active { display: block; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* --- 日期選擇器 --- */
-        .date-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-        .day-selector { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; flex: 1; }
-        .day-selector::-webkit-scrollbar { display: none; }
-
-        .day-pill {
-            background: white; padding: 10px 15px; border-radius: 12px; text-align: center; min-width: 50px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: all 0.2s; border: 2px solid transparent; flex-shrink: 0;
-        }
-        .day-pill:hover { transform: translateY(-2px); }
-        .day-pill.selected { background: var(--blue-accent); color: white; box-shadow: 0 4px 10px rgba(74, 144, 226, 0.4); }
-        .day-pill span { display: block; font-size: 12px; margin-bottom: 2px;}
-        .day-pill strong { font-size: 18px; }
-
-        .date-setting-btn { background: rgba(255,255,255,0.5); border: none; padding: 8px; border-radius: 50%; cursor: pointer; margin-left: 5px; color: #666; }
-
-        /* --- 彈出視窗 (Modal) --- */
-        .modal-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
-            display: none; justify-content: center; align-items: center; z-index: 999; backdrop-filter: blur(3px);
-        }
-        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 80%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-        .modal-box h3 { margin-top: 0; color: var(--blue-accent); }
-        .input-group { margin-bottom: 15px; text-align: left; }
-        .input-group label { display: block; font-size: 12px; color: #666; margin-bottom: 5px; }
-        .input-group input, .input-group select { 
-            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; 
-        }
-        .save-btn { background: var(--blue-accent); color: white; border: none; padding: 12px 30px; border-radius: 30px; font-size: 16px; cursor: pointer; width: 100%; }
-
-        /* --- 天氣卡 (即時) --- */
-        .weather-card {
-            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
-            padding: 15px; border-radius: 15px; color: #333; margin-bottom: 15px;
-            display: flex; align-items: center; gap: 15px; min-height: 80px;
-            transition: all 0.3s ease;
-        }
-        .weather-location-badge {
-            font-size: 10px; background: rgba(255,255,255,0.4); padding: 2px 6px; border-radius: 4px; margin-left: 5px;
-        }
-        /* Loading 動畫 */
-        .skeleton {
-            background: rgba(255,255,255,0.3); width: 100%; height: 60px; border-radius: 10px;
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 0.3; } 100% { opacity: 0.6; } }
-
-        /* --- 其他卡片 --- */
-        .flight-card { background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%); color: white; border-radius: 20px; padding: 20px; margin-bottom: 15px; }
-        .flight-time { background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 4px; font-size: 12px; margin-bottom: 15px; display: inline-block;}
-        .flight-route { display: flex; justify-content: space-between; align-items: center; font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+        body { background-color: #e5e5e5; }
+        /* 隱藏 Scrollbar 但保持功能 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        .transport-card, .activity-card {
-            background: white; border-radius: 20px; padding: 15px; display: flex; gap: 15px; align-items: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px;
+        /* 日期選擇器的樣式 */
+        .day-pill {
+            flex-shrink: 0;
+            cursor: pointer;
         }
-        .icon-box { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-        .type-transport { background: #EAF4FC; color: #4A90E2; }
-        .type-food { background: #FFF4E6; color: #FF9F43; }
-        .type-spot { background: #E6FFFA; color: #00B894; }
-
-        .shopping-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .shopping-item { background: white; border-radius: 15px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .item-img { width: 100%; height: 100px; background-color: #eee; border-radius: 10px; margin-bottom: 10px; background-size: cover; background-position: center;}
-
-        .bottom-nav {
-            position: absolute; bottom: 20px; left: 20px; right: 20px;
-            background: white; border-radius: 30px; height: 60px;
-            display: flex; justify-content: space-around; align-items: center;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1); z-index: 100;
+        .day-pill.active {
+            box-shadow: 0 4px 10px rgba(126, 141, 117, 0.4);
+            transform: scale(1.05);
         }
-        .nav-item { color: #ccc; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 10px; gap: 4px; }
-        .nav-item i { font-size: 18px; }
-        .nav-item.active { color: var(--blue-accent); }
     </style>
 </head>
-<body>
+<body class="flex justify-center items-center min-h-screen font-sans text-jp-text">
 
-    <div class="mobile-container">
+    <div id="app" class="w-full max-w-md h-[100dvh] bg-jp-bg shadow-2xl overflow-hidden flex flex-col relative sm:rounded-3xl sm:h-[90vh]">
         
-        <div id="date-modal" class="modal-overlay">
-            <div class="modal-box">
-                <h3><i class="fa-solid fa-plane-departure"></i> 旅程設定</h3>
+        <header class="px-6 pt-12 pb-4 bg-jp-bg sticky top-0 z-10">
+            <h1 class="text-2xl font-bold tracking-widest text-jp-primary">
+                <i class="fa-solid fa-torii-gate mr-2"></i>旅の記録
+            </h1>
+            <p class="text-xs text-gray-500 mt-1">2025 東京之旅</p>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-4 pb-24 no-scrollbar space-y-4">
+            
+            <div v-if="currentTab === 'schedule'" class="space-y-4">
                 
-                <div class="input-group">
-                    <label>目的地 (Destination)</label>
-                    <select id="destination-select">
-                        <option value="Tokyo">東京 (Tokyo)</option>
-                        <option value="Osaka">大阪 (Osaka)</option>
-                        <option value="Kyoto">京都 (Kyoto)</option>
-                        <option value="Sapporo">札幌 (Sapporo)</option>
-                        <option value="Fukuoka">福岡 (Fukuoka)</option>
-                    </select>
+                <div class="bg-jp-card p-4 rounded-xl shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-lg font-bold">行程表</h2>
+                        <button @click="isDateSettingOpen = !isDateSettingOpen" class="text-xs text-jp-primary hover:text-jp-accent">
+                            <i class="fa-solid fa-calendar-days mr-1"></i> 設定日期
+                        </button>
+                    </div>
+
+                    <div v-if="isDateSettingOpen" class="space-y-2 mb-4 p-2 bg-jp-bg rounded-lg">
+                        <div class="flex gap-2">
+                            <input type="date" v-model="tripStartDate" class="flex-1 p-2 border rounded-lg text-sm bg-white">
+                            <input type="date" v-model="tripEndDate" class="flex-1 p-2 border rounded-lg text-sm bg-white">
+                        </div>
+                        <button @click="generateTripDays" class="w-full bg-jp-primary text-white text-sm py-2 rounded-lg active:scale-95 transition">
+                            <i class="fa-solid fa-check"></i> 確認日期
+                        </button>
+                    </div>
+
+                    <div class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                        <div v-for="(day, index) in tripDays" :key="day.date" 
+                             @click="selectDay(day.key)"
+                             class="day-pill bg-jp-bg p-2 rounded-lg text-center transition-all"
+                             :class="{ 'bg-jp-primary text-white active': selectedDayKey === day.key, 'hover:bg-jp-gray': selectedDayKey !== day.key }">
+                            <span class="text-xs">{{ day.label }}</span>
+                            <strong class="block text-lg">{{ day.dayOfMonth }}</strong>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="input-group">
-                    <label>去程日期 (Start)</label>
-                    <input type="date" id="start-date-input">
+                <div class="flex items-center justify-between">
+                     <span class="text-xs bg-jp-primary text-white px-3 py-1 rounded-full shadow-md">{{ selectedDayLabel }}</span>
+                     <button @click="addScheduleItem" class="text-sm text-jp-primary hover:text-jp-accent font-bold">
+                        <i class="fa-solid fa-plus mr-1"></i> 新增行程
+                    </button>
                 </div>
-                <div class="input-group">
-                    <label>回程日期 (End)</label>
-                    <input type="date" id="end-date-input">
+
+                <div v-if="currentDaySchedule.length === 0" class="text-center py-10 text-gray-400">
+                    <i class="fa-solid fa-calendar-xmark text-4xl mb-3"></i>
+                    <p>本日行程空空如也，點擊上方按鈕規劃一下吧！</p>
                 </div>
-                
-                <button class="save-btn" onclick="generateScheduleDays()">確認並更新</button>
-                <div style="margin-top: 10px; font-size: 12px; color: #999; cursor: pointer;" onclick="toggleModal(false)">取消</div>
+
+                <div v-for="(item, index) in currentDaySchedule" :key="item.id" class="bg-jp-card p-4 rounded-xl shadow-sm border-l-4 border-jp-primary flex gap-3 relative">
+                    <div class="flex flex-col items-center min-w-[50px]">
+                        <span class="text-lg font-bold">{{ item.time }}</span>
+                        <div class="mt-2 text-jp-accent flex flex-col items-center">
+                            <i :class="item.weatherIcon"></i>
+                            <span class="text-[10px]">{{ item.weather }}</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 pl-3 border-l border-dashed border-gray-200">
+                        <h3 class="font-bold text-lg">{{ item.location }}</h3>
+                        <p class="text-sm text-gray-500 mb-2">{{ item.note }}</p>
+                        <button @click="openMap(item.location)" class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition">
+                            <i class="fa-solid fa-location-arrow mr-1 text-jp-primary"></i> 導航
+                        </button>
+                    </div>
+                    <button @click="deleteScheduleItem(item.id)" class="absolute top-2 right-2 text-gray-300 hover:text-red-400 p-1">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
             </div>
-        </div>
-
-        <div class="header">
-            <h1 id="page-title">eMenu Trip <i class="fa-solid fa-sort-up" style="font-size:12px; margin-left:5px;"></i></h1>
-            <div class="rate-tag">1 JPY ≈ 0.052 HKD</div>
-        </div>
-
-        <div class="content active" id="tab-schedule">
-            <div class="date-header-row">
-                <div class="day-selector" id="day-scroll-container">
-                    <div class="day-pill selected"><span>Loading</span><strong>...</strong></div>
+            
+            <div v-if="currentTab === 'map'" class="h-full flex flex-col">
+                <h2 class="text-lg font-bold mb-4">地圖導航</h2>
+                <div class="bg-jp-card p-6 rounded-xl shadow-sm text-center flex-1 flex flex-col justify-center items-center gap-4">
+                    <i class="fa-solid fa-map-location-dot text-6xl text-jp-primary/50"></i>
+                    <p class="text-gray-500 text-sm">點擊下方按鈕開啟 Google Maps 導航</p>
+                    <div class="w-full space-y-3 mt-4">
+                        <button v-for="loc in savedLocations" @click="openMap(loc)" class="w-full py-3 bg-white border border-jp-primary text-jp-primary rounded-xl font-bold hover:bg-jp-primary hover:text-white transition shadow-sm">
+                            去 {{ loc }}
+                        </button>
+                    </div>
                 </div>
-                <button class="date-setting-btn" onclick="toggleModal(true)">
-                    <i class="fa-solid fa-gear"></i>
+            </div>
+
+            <div v-if="currentTab === 'money'" class="space-y-4">
+                <div class="bg-jp-primary text-white p-6 rounded-2xl shadow-md mb-6 relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 text-9xl opacity-10 rotate-12">¥</div>
+                    <p class="text-sm opacity-80">總支出 (Total)</p>
+                    <h2 class="text-3xl font-bold mt-1">¥ {{ totalExpense.toLocaleString() }}</h2>
+                </div>
+
+                <div class="bg-jp-card p-5 rounded-xl shadow-sm space-y-3">
+                    <h3 class="font-bold text-sm text-gray-600 mb-2">新增支出</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                         <input type="date" v-model="newExpense.date" class="col-span-2 bg-gray-50 p-3 rounded-lg text-sm outline-none border border-transparent focus:border-jp-primary">
+
+                        <input v-model="newExpense.item" placeholder="項目 (例如: 拉麵)" class="col-span-2 bg-gray-50 p-3 rounded-lg text-sm outline-none border border-transparent focus:border-jp-primary">
+                        <input v-model.number="newExpense.amount" type="number" placeholder="金額 (¥)" class="bg-gray-50 p-3 rounded-lg text-sm outline-none border border-transparent focus:border-jp-primary">
+                        
+                        <div class="relative">
+                            <select v-model="newExpense.method" class="w-full bg-gray-50 p-3 rounded-lg text-sm appearance-none outline-none border border-transparent focus:border-jp-primary text-gray-600">
+                                <option value="cash">現金 Cash</option>
+                                <option value="card">信用卡 Card</option>
+                                <option value="suica">Suica/IC</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down absolute right-3 top-3.5 text-xs text-gray-400 pointer-events-none"></i>
+                        </div>
+                    </div>
+                    <button @click="addExpense" class="w-full bg-jp-accent text-white py-3 rounded-lg font-bold shadow-sm active:scale-95 transition">
+                        記帳
+                    </button>
+                </div>
+
+                <div class="space-y-2 mt-4">
+                    <h3 class="font-bold text-sm text-gray-600 mb-2">支出紀錄</h3>
+                    <div v-for="(exp, i) in sortedExpenses" :key="exp.id" class="flex justify-between items-center bg-white p-3 rounded-lg border-b border-gray-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs" 
+                                :class="exp.method === 'cash' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'">
+                                <i :class="exp.method === 'cash' ? 'fa-solid fa-coins' : 'fa-regular fa-credit-card'"></i>
+                            </div>
+                            <div>
+                                <span class="font-medium block">{{ exp.item }}</span>
+                                <span class="text-xs text-gray-400">{{ exp.date }}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="font-bold text-gray-700 mr-3">- ¥{{ exp.amount.toLocaleString() }}</span>
+                            <button @click="deleteExpense(exp.id)" class="text-gray-300 hover:text-red-400 p-1">
+                                <i class="fa-solid fa-trash-can text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="currentTab === 'shop'" class="space-y-4">
+                <h2 class="text-lg font-bold">購物清單</h2>
+                
+                <div class="flex gap-2">
+                    <input v-model="newItem" @keyup.enter="addItem" placeholder="想買什麼？(例如: 抹茶粉)" class="flex-1 bg-white p-3 rounded-xl shadow-sm outline-none">
+                    <button @click="addItem" class="bg-jp-primary text-white w-12 rounded-xl shadow-sm"><i class="fa-solid fa-plus"></i></button>
+                </div>
+
+                <div class="space-y-2">
+                    <div v-for="(item, index) in shoppingList" :key="index" 
+                         class="flex items-center bg-jp-card p-4 rounded-xl shadow-sm transition-all"
+                         :class="{'opacity-50 grayscale': item.checked}">
+                        <label class="flex items-center w-full cursor-pointer">
+                            <input type="checkbox" v-model="item.checked" class="w-5 h-5 text-jp-primary rounded border-gray-300 focus:ring-jp-primary mr-3">
+                            <span :class="{'line-through text-gray-400': item.checked}" class="flex-1 font-medium">{{ item.name }}</span>
+                        </label>
+                        <button @click="removeItem(index)" class="text-gray-300 hover:text-red-400 px-2">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <nav class="absolute bottom-0 w-full bg-white border-t border-gray-100 py-2 px-6 pb-6 flex justify-between items-center z-20">
+            <button @click="currentTab = 'schedule'" :class="currentTab === 'schedule' ? 'text-jp-primary' : 'text-gray-300'" class="flex flex-col items-center gap-1 w-16 transition">
+                <i class="fa-solid fa-calendar-day text-xl"></i>
+                <span class="text-[10px]">行程</span>
+            </button>
+            <button @click="currentTab = 'map'" :class="currentTab === 'map' ? 'text-jp-primary' : 'text-gray-300'" class="flex flex-col items-center gap-1 w-16 transition">
+                <i class="fa-solid fa-map text-xl"></i>
+                <span class="text-[10px]">地圖</span>
+            </button>
+            
+            <div class="relative -top-5">
+                <button @click="currentTab = 'money'" class="bg-jp-primary text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center transform hover:scale-105 transition border-4 border-jp-bg">
+                    <i class="fa-solid fa-pen text-xl"></i>
                 </button>
             </div>
 
-            <div id="weather-display" class="weather-card">
-                <div class="skeleton"></div>
-            </div>
-
-            <h3 style="margin: 10px 0;">行程安排 <span style="float:right; background:#333; color:white; font-size:10px; padding:3px 8px; border-radius:10px;">+ 新增</span></h3>
-            <div id="daily-schedule-list"></div>
-        </div>
-
-        <div class="content" id="tab-money">
-            <h2 style="margin-bottom: 15px;">旅費管理</h2>
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 20px; padding: 25px; text-align: center; margin-bottom: 20px;">
-                <div style="font-size: 12px; opacity: 0.8;">總支出 (HKD)</div>
-                <div class="total-amount" style="font-size: 36px; font-weight: bold; margin: 10px 0;">$ 1,250</div>
-            </div>
-            <p style="text-align: center; color: #aaa;">暫無更多支出紀錄</p>
-        </div>
-
-        <div class="content" id="tab-shopping">
-            <h2 style="margin-bottom: 15px;">購物清單</h2>
-            <div class="shopping-grid">
-                <div class="shopping-item">
-                    <div class="item-img" style="background-color: #ffd1dc;"></div>
-                    <div style="font-weight: bold; font-size: 14px;">CEZANNE 101號</div>
-                    <div style="color: gray; font-size: 12px;">¥3000</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="bottom-nav">
-            <div class="nav-item active" onclick="switchMainTab('tab-schedule', this)"><i class="fa-solid fa-route"></i><span>行程</span></div>
-            <div class="nav-item" onclick="switchMainTab('tab-money', this)"><i class="fa-solid fa-map-location-dot"></i><span>地圖</span></div>
-            <div class="nav-item" onclick="switchMainTab('tab-money', this)"><i class="fa-solid fa-wallet"></i><span>記帳</span></div>
-            <div class="nav-item" onclick="switchMainTab('tab-shopping', this)"><i class="fa-solid fa-bag-shopping"></i><span>購物</span></div>
-            <div class="nav-item"><i class="fa-solid fa-circle-info"></i><span>資訊</span></div>
-        </div>
+            <button @click="currentTab = 'shop'" :class="currentTab === 'shop' ? 'text-jp-primary' : 'text-gray-300'" class="flex flex-col items-center gap-1 w-16 transition">
+                <i class="fa-solid fa-bag-shopping text-xl"></i>
+                <span class="text-[10px]">購物</span>
+            </button>
+             <button class="flex flex-col items-center gap-1 w-16 text-gray-300 cursor-not-allowed">
+                <i class="fa-solid fa-user text-xl"></i>
+                <span class="text-[10px]">我的</span>
+            </button>
+        </nav>
 
     </div>
 
     <script>
-        // === 1. 城市座標資料庫 (可以自己加) ===
-        const cityCoordinates = {
-            'Hong Kong': { lat: 22.3193, lon: 114.1694, name: '香港' },
-            'Tokyo': { lat: 35.6895, lon: 139.6917, name: '東京' },
-            'Osaka': { lat: 34.6937, lon: 135.5023, name: '大阪' },
-            'Kyoto': { lat: 35.0116, lon: 135.7681, name: '京都' },
-            'Sapporo': { lat: 43.0618, lon: 141.3545, name: '札幌' },
-            'Fukuoka': { lat: 33.5904, lon: 130.4017, name: '福岡' }
-        };
+        const { createApp, ref, computed } = Vue;
 
-        // 天氣代碼對照表 (WMO Code to Icons)
-        function getWeatherIcon(code) {
-            // 0: Clear, 1-3: Cloudy, 45-48: Fog, 51-67: Rain, 71-77: Snow, 95: Thunder
-            if (code === 0) return { icon: 'fa-sun', color: '#ffbb33', text: '晴朗' };
-            if (code >= 1 && code <= 3) return { icon: 'fa-cloud-sun', color: '#ffbb33', text: '多雲' };
-            if (code >= 45 && code <= 48) return { icon: 'fa-smog', color: '#ccc', text: '有霧' };
-            if (code >= 51 && code <= 67) return { icon: 'fa-cloud-showers-heavy', color: '#74b9ff', text: '有雨' };
-            if (code >= 71 && code <= 77) return { icon: 'fa-snowflake', color: '#a29bfe', text: '下雪' };
-            if (code >= 80) return { icon: 'fa-cloud-bolt', color: '#636e72', text: '雷雨' };
-            return { icon: 'fa-cloud', color: '#aaa', text: '陰天' };
+        // Helper function to format date 'YYYY-MM-DD'
+        const formatDate = (date) => {
+            const d = new Date(date);
+            let month = '' + (d.getMonth() + 1);
+            let day = '' + d.getDate();
+            const year = d.getFullYear();
+
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+
+            return [year, month, day].join('-');
+        }
+        
+        // Helper function to add days to a date
+        const addDays = (date, days) => {
+            const result = new Date(date);
+            result.setDate(result.getDate() + days);
+            return formatDate(result);
         }
 
-        // 當前設定的旅遊地點 (預設東京)
-        let currentTripLocation = 'Tokyo';
-
-        // 行程靜態資料
-        const scheduleData = {
-            'pre': { list: `<div class="activity-card"><div class="icon-box type-spot"><i class="fa-solid fa-passport"></i></div><div style="flex:1;"><div style="font-weight: bold;">檢查護照</div><div>有效期需超過半年</div></div></div>` },
-            'day1': { list: `<div class="flight-card"><span class="flight-time">FLIGHT 09:05</span><div class="flight-route"><span>HKG</span><i class="fa-solid fa-plane flight-icon"></i><span>TYO</span></div><div style="font-size: 12px; opacity:0.8;">HB320 航班前往東京</div></div>` },
-            'day2': { list: `<div class="activity-card"><div class="icon-box type-spot"><i class="fa-brands fa-fort-awesome"></i></div><div style="flex:1;"><div style="font-weight: bold;">迪士尼樂園</div><div style="font-size: 12px; color: gray;">全日遊玩</div></div><div style="font-weight:bold;">08:00</div></div>` }
-        };
-
-        const emptyStateHTML = `<div style="text-align:center; padding: 40px; color: #aaa;"><i class="fa-solid fa-calendar-plus" style="font-size: 40px; margin-bottom: 10px;"></i><p>這天還沒有行程安排</p><button style="margin-top:10px; padding:5px 15px; border:1px solid #ddd; background:white; border-radius:20px;">+ 規劃行程</button></div>`;
-
-        // === 2. 抓取天氣 API (核心功能) ===
-        async function fetchWeather(cityKey) {
-            const city = cityCoordinates[cityKey];
-            if (!city) return null;
-
-            const displayDiv = document.getElementById('weather-display');
-            // 顯示 Loading 狀態
-            displayDiv.innerHTML = `<div class="skeleton"></div>`;
-
-            try {
-                // 使用 Open-Meteo API
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current_weather=true`;
-                const response = await fetch(url);
-                const data = await response.json();
+        createApp({
+            setup() {
+                const currentTab = ref('schedule');
                 
-                const weather = data.current_weather;
-                const info = getWeatherIcon(weather.weathercode);
+                // --- 行程管理 (多日) ---
+                const isDateSettingOpen = ref(false);
+                const tripStartDate = ref('2025-05-10'); // 預設日期
+                const tripEndDate = ref('2025-05-14');
+                const selectedDayKey = ref('day1'); // 當前選中的日期 Key (例如: 'day1')
 
-                // 更新 UI
-                displayDiv.innerHTML = `
-                    <i class="fa-solid ${info.icon}" style="font-size: 30px; color: ${info.color};"></i>
-                    <div>
-                        <div style="font-size: 24px; font-weight:bold;">${weather.temperature}°C</div>
-                        <div style="font-size: 12px;">
-                            ${city.name} - ${info.text} 
-                            <span class="weather-location-badge">即時</span>
-                        </div>
-                    </div>
-                `;
-            } catch (error) {
-                console.error("Weather fetch error", error);
-                displayDiv.innerHTML = `<div style="color: #666; font-size:12px;">無法載入天氣資訊</div>`;
+                // 行程資料結構：使用 Object 儲存每日行程列表
+                const allSchedules = ref({
+                    'day1': [
+                        { id: 101, time: '09:00', location: '淺草寺', note: '雷門拍照，求御守', weather: '晴れ', weatherIcon: 'fa-solid fa-sun' },
+                        { id: 102, time: '11:30', location: '晴空塔', note: '敘敘苑午餐預約', weather: '曇り', weatherIcon: 'fa-solid fa-cloud' },
+                    ],
+                    'day2': [
+                        { id: 201, time: '09:30', location: '東京迪士尼', note: '全日遊玩', weather: '晴れ', weatherIcon: 'fa-solid fa-sun' },
+                    ],
+                    'day3': [],
+                    'day4': [],
+                    'day5': [],
+                });
+
+                // 計算屬性：生成日期選擇器所需的日期列表
+                const tripDays = computed(() => {
+                    const days = [];
+                    let currentDate = new Date(tripStartDate.value);
+                    const endDate = new Date(tripEndDate.value);
+                    let dayIndex = 1;
+                    
+                    if (currentDate > endDate) return []; // 避免日期錯誤
+
+                    while (currentDate <= endDate) {
+                        const dayKey = 'day' + dayIndex;
+                        days.push({
+                            key: dayKey,
+                            label: 'Day ' + dayIndex,
+                            dayOfMonth: currentDate.getDate(),
+                            date: formatDate(currentDate)
+                        });
+                        
+                        // 確保每日行程資料存在，如果沒有就初始化為空陣列
+                        if (!allSchedules.value[dayKey]) {
+                            allSchedules.value[dayKey] = [];
+                        }
+
+                        currentDate.setDate(currentDate.getDate() + 1);
+                        dayIndex++;
+                    }
+                    return days;
+                });
+                
+                // 計算屬性：當前選中日期的行程
+                const currentDaySchedule = computed(() => {
+                    return allSchedules.value[selectedDayKey.value] || [];
+                });
+                
+                // 計算屬性：當前選中日期的標籤
+                const selectedDayLabel = computed(() => {
+                    const day = tripDays.value.find(d => d.key === selectedDayKey.value);
+                    return day ? `${day.label} (${day.date})` : '未選日期';
+                });
+
+
+                const generateTripDays = () => {
+                    // 檢查日期範圍
+                    if (new Date(tripStartDate.value) > new Date(tripEndDate.value)) {
+                        alert('結束日期不能早於開始日期');
+                        return;
+                    }
+
+                    // 重新生成 tripDays 會自動初始化 allSchedules
+                    tripDays.value; 
+
+                    // 自動選中第一天
+                    if (tripDays.value.length > 0) {
+                        selectedDayKey.value = tripDays.value[0].key;
+                    }
+                    isDateSettingOpen.value = false;
+                };
+
+                const selectDay = (dayKey) => {
+                    selectedDayKey.value = dayKey;
+                };
+                
+                const addScheduleItem = () => {
+                    const newId = Date.now(); // 用時間戳記作為唯一 ID
+                    const newTime = prompt('請輸入行程時間 (例如: 14:00)');
+                    const newLocation = prompt('請輸入地點名稱 (例如: 澀谷)');
+                    
+                    if (newTime && newLocation) {
+                        currentDaySchedule.value.push({
+                            id: newId,
+                            time: newTime,
+                            location: newLocation,
+                            note: '新增的行程筆記', 
+                            weather: '未知', 
+                            weatherIcon: 'fa-solid fa-question'
+                        });
+                        // 排序 (根據時間)
+                        currentDaySchedule.value.sort((a, b) => a.time.localeCompare(b.time));
+                    }
+                };
+
+                const deleteScheduleItem = (id) => {
+                    if (confirm('確定要刪除此行程嗎？')) {
+                        const index = currentDaySchedule.value.findIndex(item => item.id === id);
+                        if (index !== -1) {
+                            currentDaySchedule.value.splice(index, 1);
+                        }
+                    }
+                };
+
+                // 初始化時生成一次日期
+                generateTripDays();
+                // ------------------------------------
+
+
+                // --- 記帳管理 ---
+                
+                // 3. 記帳資料 (新增 id 和 date)
+                const expenses = ref([
+                    { id: 1, item: '西瓜卡儲值', amount: 3000, method: 'cash', date: '2025-05-10' },
+                    { id: 2, item: '便利商店', amount: 850, method: 'suica', date: '2025-05-10' },
+                    { id: 3, item: '拉麵晚餐', amount: 1200, method: 'cash', date: '2025-05-11' },
+                ]);
+                
+                // 新增：包含 date 欄位，並預設為今日
+                const newExpense = ref({ 
+                    item: '', 
+                    amount: '', 
+                    method: 'cash', 
+                    date: formatDate(new Date()) 
+                });
+
+                const totalExpense = computed(() => {
+                    return expenses.value.reduce((sum, curr) => sum + curr.amount, 0);
+                });
+                
+                // 新增：根據日期排序 (最新的在最前)
+                const sortedExpenses = computed(() => {
+                    return [...expenses.value].sort((a, b) => new Date(b.date) - new Date(a.date));
+                });
+
+                const addExpense = () => {
+                    if(!newExpense.value.item || !newExpense.value.amount || !newExpense.value.date) return;
+                    
+                    const newId = expenses.value.length ? Math.max(...expenses.value.map(e => e.id)) + 1 : 1;
+                    
+                    expenses.value.unshift({ 
+                        id: newId,
+                        item: newExpense.value.item,
+                        amount: newExpense.value.amount,
+                        method: newExpense.value.method,
+                        date: newExpense.value.date // 儲存日期
+                    });
+                    
+                    // 清空表單，日期保留
+                    newExpense.value.item = '';
+                    newExpense.value.amount = '';
+                };
+                
+                // 新增：刪除支出
+                const deleteExpense = (id) => {
+                    if (confirm('確定要刪除這筆支出紀錄嗎？')) {
+                        expenses.value = expenses.value.filter(exp => exp.id !== id);
+                    }
+                };
+                // ------------------------------------
+
+
+                // --- 購物清單 (不變) ---
+                const shoppingList = ref([
+                    { name: '藥妝 (EVE止痛藥)', checked: false },
+                    { name: 'Uniqlo 發熱衣', checked: true },
+                ]);
+                const newItem = ref('');
+
+                const addItem = () => {
+                    if(!newItem.value) return;
+                    shoppingList.value.push({ name: newItem.value, checked: false });
+                    newItem.value = '';
+                };
+
+                const removeItem = (index) => {
+                    shoppingList.value.splice(index, 1);
+                };
+                // ------------------------------------
+
+                // --- 地圖功能 (不變) ---
+                const savedLocations = ref(['東京鐵塔', '淺草寺', '新宿車站', '成田機場']);
+                const openMap = (location) => {
+                    // 使用 Google Maps Web URL Scheme
+                    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+                    window.open(url, '_blank');
+                };
+                // ------------------------------------
+
+
+                return {
+                    currentTab,
+                    // 行程
+                    isDateSettingOpen,
+                    tripStartDate,
+                    tripEndDate,
+                    tripDays,
+                    selectedDayKey,
+                    currentDaySchedule,
+                    selectedDayLabel,
+                    generateTripDays,
+                    selectDay,
+                    addScheduleItem, // 新增
+                    deleteScheduleItem, // 刪除
+                    // 地圖
+                    savedLocations,
+                    openMap,
+                    // 記帳
+                    expenses,
+                    newExpense,
+                    totalExpense,
+                    sortedExpenses, // 使用排序後的列表
+                    addExpense,
+                    deleteExpense, // 新增
+                    // 購物
+                    shoppingList,
+                    newItem,
+                    addItem,
+                    removeItem,
+                };
             }
-        }
-
-        // === 3. 生成日期與邏輯控制 ===
-        function generateScheduleDays() {
-            const startInput = document.getElementById('start-date-input').value;
-            const endInput = document.getElementById('end-date-input').value;
-            const destination = document.getElementById('destination-select').value;
-
-            if (!startInput || !endInput) { alert("請選擇日期"); return; }
-
-            // 儲存用戶選擇的地點
-            currentTripLocation = destination;
-
-            const startDate = new Date(startInput);
-            const endDate = new Date(endInput);
-            const container = document.getElementById('day-scroll-container');
-            
-            container.innerHTML = '';
-
-            // 加 "行前"
-            const preBtn = document.createElement('div');
-            preBtn.className = 'day-pill';
-            preBtn.innerHTML = `<span>行前</span><i class="fa-solid fa-clipboard-list"></i>`;
-            preBtn.onclick = function() { selectDay('pre', this) };
-            container.appendChild(preBtn);
-
-            // 加 Day 1, 2, 3...
-            let currentDate = new Date(startDate);
-            let dayIndex = 1;
-
-            while (currentDate <= endDate) {
-                const dayNum = currentDate.getDate().toString().padStart(2, '0');
-                const dayKey = 'day' + dayIndex;
-
-                const btn = document.createElement('div');
-                btn.className = 'day-pill';
-                btn.dataset.key = dayKey; 
-                btn.innerHTML = `<span>Day ${dayIndex}</span><strong>${dayNum}</strong>`;
-                btn.onclick = function() { selectDay(this.dataset.key, this) };
-
-                container.appendChild(btn);
-                currentDate.setDate(currentDate.getDate() + 1);
-                dayIndex++;
-            }
-
-            toggleModal(false);
-            
-            // 自動點擊 Day 1
-            const firstDayBtn = container.children[1];
-            if (firstDayBtn) firstDayBtn.click();
-        }
-
-        function toggleModal(show) {
-            const modal = document.getElementById('date-modal');
-            modal.style.display = show ? 'flex' : 'none';
-            if(show && !document.getElementById('start-date-input').value) {
-                const today = new Date();
-                document.getElementById('start-date-input').valueAsDate = today;
-                document.getElementById('end-date-input').valueAsDate = new Date(today.getTime() + 4*24*60*60*1000);
-            }
-        }
-
-        // === 4. 切換日期 (包含天氣邏輯) ===
-        function selectDay(dayKey, element) {
-            // UI 更新
-            document.querySelectorAll('.day-pill').forEach(pill => pill.classList.remove('selected'));
-            element.classList.add('selected');
-
-            const listContainer = document.getElementById('daily-schedule-list');
-            listContainer.style.opacity = '0';
-
-            // --- 天氣邏輯的核心 ---
-            if (dayKey === 'pre') {
-                // 規則：行前永遠顯示香港
-                fetchWeather('Hong Kong');
-            } else {
-                // 規則：其他日子顯示用戶設定的旅遊地點
-                fetchWeather(currentTripLocation);
-            }
-
-            // 更新行程列表
-            setTimeout(() => {
-                const data = scheduleData[dayKey];
-                listContainer.innerHTML = data ? data.list : emptyStateHTML;
-                listContainer.style.opacity = '1';
-                listContainer.style.animation = 'fadeIn 0.4s ease'; 
-            }, 100);
-        }
-
-        function switchMainTab(tabId, element) {
-            document.querySelectorAll('.content').forEach(div => div.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            element.classList.add('active');
-        }
-
-        window.onload = function() {
-            document.getElementById('start-date-input').value = "2024-03-08";
-            document.getElementById('end-date-input').value = "2024-03-11";
-            generateScheduleDays(); // 初始化
-        };
-
+        }).mount('#app');
     </script>
 </body>
 </html>
